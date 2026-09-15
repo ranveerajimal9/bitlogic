@@ -72,7 +72,7 @@ export default function Round1() {
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <a href="https://scratch.mit.edu/projects/editor/" target="_blank" rel="noreferrer" data-testid="open-scratch-btn" className="shrink-0">
+            <a href="https://turbowarp.org/editor" target="_blank" rel="noreferrer" data-testid="open-scratch-btn" className="shrink-0">
               <Button variant="outline" className="rounded-full border-primary/40 text-primary hover:bg-primary/10 h-10">
                 <ExternalLink className="w-4 h-4 mr-2" /> Open in new tab
               </Button>
@@ -88,7 +88,7 @@ export default function Round1() {
       <div className="flex-1 bg-black relative">
         <iframe
           title="Scratch Editor"
-          src="https://scratch.mit.edu/projects/editor/?tutorial=getStarted"
+          src="https://turbowarp.org/editor"
           className="w-full relative z-10"
           style={{ height: "calc(100vh - 64px - 65px - 40px)", border: "0" }}
           allow="camera; microphone; autoplay; clipboard-write"
@@ -98,11 +98,11 @@ export default function Round1() {
         <div className="absolute inset-0 z-0 flex items-center justify-center p-6">
           <div className="glass rounded-2xl p-8 max-w-md text-center">
             <Blocks className="w-10 h-10 text-primary mx-auto mb-4" />
-            <h2 className="font-display font-bold text-2xl">Build your Scratch project</h2>
+            <h2 className="font-display font-bold text-2xl">Loading the Scratch 3 editor…</h2>
             <p className="text-muted-foreground mt-3 text-sm">
-              If the editor doesn't load above (Scratch blocks embedding in some browsers), open it in a new tab, build your story or game, then paste your share link here and submit.
+              This is a full Scratch 3 editor (powered by TurboWarp) with the exact same blocks. If it doesn't appear above, open it in a new tab, build your story or game, then paste your share link here and submit.
             </p>
-            <a href="https://scratch.mit.edu/projects/editor/" target="_blank" rel="noreferrer">
+            <a href="https://turbowarp.org/editor" target="_blank" rel="noreferrer">
               <Button className="mt-6 rounded-full bg-primary text-black font-semibold" data-testid="open-scratch-fallback">
                 <ExternalLink className="w-4 h-4 mr-2" /> Launch Scratch Editor
               </Button>
@@ -112,7 +112,7 @@ export default function Round1() {
       </div>
       <div className="bg-black/60 border-t border-white/10 px-4 py-2 text-xs text-muted-foreground flex items-center gap-2">
         <ExternalLink className="w-3.5 h-3.5" />
-        Build your story or game above. Save it in Scratch, then paste the share link and click Submit for the judges.
+        Build your story or game above (full Scratch 3 blocks). Save/share it, then paste the link and click Submit for the judges.
       </div>
     </div>
   );
