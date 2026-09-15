@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Blocks, Puzzle, Code2, Lock, Clock, Trophy, CheckCircle2, XCircle, ArrowRight, Swords, Crown, Send, Loader2 } from "lucide-react";
+import { Blocks, Puzzle, Code2, Lock, Clock, Trophy, CheckCircle2, XCircle, ArrowRight, Swords, Crown, Send, Loader2, Info } from "lucide-react";
 
 const ROUND_META = {
   1: { title: "CodeCraft", tag: "Scratch story / game", icon: Blocks, color: "text-primary", path: "/round/1" },
@@ -103,12 +103,37 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* ACTIVE ROUND BANNER */}
+            <div className="mt-6 glass rounded-2xl p-5 flex items-start gap-3" data-testid="active-round-banner">
+              <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                {comp.current_round === 0 ? (
+                  <>
+                    <p className="font-medium">The competition is live — no round is open right now.</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">Rounds unlock one at a time. The organiser will open the next round shortly, and it will appear here automatically.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium">Round {comp.current_round} is currently open.</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">Play it if you're qualified. Other rounds stay locked until the organiser opens them.</p>
+                  </>
+                )}
+              </div>
+            </div>
+
             {/* ROUND CARDS */}
             <div className="mt-6 grid md:grid-cols-3 gap-5">
               {[1, 2, 3].map((n) => {
                 const meta = ROUND_META[n];
                 const Icon = meta.icon;
                 const state = roundState(n);
+                const reason = {
+                  locked: comp.current_round === 0
+                    ? "Not open yet — waiting for the organiser to start a round."
+                    : `Opens after Round ${comp.current_round} — the organiser controls when.`,
+                  "not-qualified": `You didn't qualify for this round. Only the top finishers of Round ${n - 1} advance.`,
+                  finalized: "This round has been graded and closed.",
+                }[state];
                 return (
                   <div key={n} className="glass rounded-2xl p-6 flex flex-col" data-testid={`dashboard-round-${n}`}>
                     <div className="flex items-center justify-between mb-4">
@@ -135,6 +160,7 @@ export default function Dashboard() {
                       {state === "finalized" && (
                         <Button disabled className="w-full rounded-full" variant="outline"><CheckCircle2 className="w-4 h-4 mr-2" /> Round Closed</Button>
                       )}
+                      {reason && <p className="text-xs text-muted-foreground mt-3 text-center" data-testid={`round-reason-${n}`}>{reason}</p>}
                     </div>
                   </div>
                 );
