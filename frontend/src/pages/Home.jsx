@@ -50,9 +50,12 @@ export default function Home() {
             <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-primary border border-primary/30 rounded-full px-4 py-1.5 mb-6">
               <Sparkles className="w-3.5 h-3.5" /> Computer-Based Competition
             </span>
-            <h1 className="font-display font-extrabold tracking-tight text-5xl sm:text-6xl lg:text-7xl leading-[0.95]">
-              BIT<span className="text-primary text-glow-cyan">LOGIC</span>
-            </h1>
+            <img
+              src="/bitlogic-logo.png"
+              alt="BITLOGIC"
+              data-testid="hero-logo"
+              className="w-52 sm:w-64 lg:w-72 h-auto -ml-2 animate-float drop-shadow-[0_0_40px_rgba(0,224,255,0.35)]"
+            />
             <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl">
               Think. Create. Solve. Code. A three-round battle of creativity, logic and programming for the sharpest young minds.
             </p>
