@@ -1,0 +1,26 @@
+{
+  "summary": "Frontend regression for Round 1 (CodeCraft) embedded Scratch 3 editor after switching iframe src to https://scratchfoundation.github.io/scratch-gui/. Setup: admin login, PUT /api/competition {start_datetime past, current_round:1}, created student r1test2@test.com/Pass@123 via POST /api/students. Logged in as student, opened /round/1. RESULT: FIX VERIFIED. (1) iframe [data-testid=scratch-iframe] src is exactly https://scratchfoundation.github.io/scratch-gui/; content_frame is accessible, title is 'Scratch 3.0 GUI', body contains real editor UI (Motion/Looks/Sound/Events/Control/Sensing/Operators/Variables/My Blocks palettes, blocks like 'move 10 steps', 'when clicked', costumes/sounds tabs, Scratch cat sprite on stage, canvas rendered). Markers: [class*='blocks']=true, [class*='gui']=true, [class*='stage']=true, hasCanvas=true. Body text contains NO 'Invalid TurboWarp Embed', NO 'refused to connect', NO X-Frame-Options error. Screenshot at /app/test_reports/round1_scratchgui.png confirms visually the full Scratch 3 editor is rendered inside the iframe. (2) 'Open in new tab' (open-scratch-btn), project link input (round1-url) and Submit (round1-submit) are visible; submitting a link produced the toast 'Project link submitted!' via POST /api/rounds/1/submit. (3) Access control preserved: after PUT /api/competition {current_round:0}, /round/1 shows 'Round 1 isn't available' with NO iframe rendered. Cleanup performed: POST /api/rounds/reset, current_round=0, test student deleted.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Round1.jsx iframe overlay", "issues": ["The loading fallback overlay is at z-0 behind the z-10 iframe. Since scratch-gui loads correctly now, it's a non-issue functionally, but the overlay is effectively invisible and dead UI. Consider removing it or showing it only until an onload signal fires."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/round1_scratchgui.png"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Round1.jsx height math 'calc(100vh - 64px - 65px - 40px)' hardcodes navbar/toolbar/footer heights and will break on responsive wrap of the flex-wrap toolbar. Prefer flexbox flex-1 + min-h-0.",
+    "iframe allow attribute lacks 'clipboard-read' (only clipboard-write); Scratch editors often want paste support.",
+    "Access-control check in useEffect: initial state allowed=true renders briefly before /competition resolves — consider defaulting allowed=false until fetched."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend only)", "frontend": "3/3 required scenarios pass"},
+  "test_credentials": "Admin ranveerajimal9@gmail.com / Bitlogic@2026. Test student r1test2@test.com / Pass@123 (created & deleted).",
+  "seed_data_creation": "Created student r1test2@test.com then deleted at end. Toggled competition current_round 1 -> 0 with rounds/reset.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Round 1 embedded Scratch 3 editor is now fully functional via https://scratchfoundation.github.io/scratch-gui/ static build. Iframe content_frame is same-origin-accessible for testing (title 'Scratch 3.0 GUI', full blocks palette visible, canvas + Scratch cat on stage). Note: correct student create endpoint is POST /api/students (NOT /api/admin/students). Login button label is 'Log In'. Competition PUT accepts partial payload.",
+  "rca of the issue": "Previous X-Frame-Options / TurboWarp anti-embed issues are both eliminated by using the official Scratch Foundation GitHub Pages build of scratch-gui, which serves the static SPA with no X-Frame-Options, no restrictive frame-ancestors CSP, and no client-side embed detection. The editor loads and runs entirely inside the iframe."
+}
