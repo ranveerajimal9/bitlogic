@@ -1,0 +1,15 @@
+{
+  "summary": "Retest of BITLOGIC 'why is it locked' fix + backend start_datetime null-clear regression. All 3 scenarios PASS. Scenario A (past start, current_round=0): banner shows 'The competition is live — no round is open right now', round-reason-1 = 'Not open yet — waiting for the organiser to start Round 1.', round-reason-2 = 'Opens after Round 1. Only qualifiers from the previous round advance.', round-reason-3 = 'Opens after Round 2. Only qualifiers from the previous round advance.' (correctly references Round 2 now, not Round 1). Scenario B (current_round=1): banner shows 'Round 1 is currently open.', enter-round-1 button visible, round-reason-1 is absent, round-reason-2/3 render with 'Locked' state and correct 'Opens after Round N-1' wording. Scenario C (start_datetime cleared to null): PUT /api/competition {start_datetime:null} response returns start_datetime=null and started=false; dashboard-gate is visible, active-round-banner and round cards are absent. Backend regression fixed: server.py update_competition now uses data.model_fields_set so explicit null clears the field. Cleanup done — test student lockcheck2@test.com deleted; competition left with start_datetime=null, current_round=0.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/backend_test.py"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (PUT /api/competition null-clear verified)", "frontend": "100% (all 3 scenarios pass with correct testids and reason wording)"},
+  "test_credentials": "Admin ranveerajimal9@gmail.com / Bitlogic@2026; test student lockcheck2@test.com / Pass@123 (created and deleted during run).",
+  "seed_data_creation": "Created and deleted student lockcheck2@test.com.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Competition left in clean not-started state (start_datetime=null, current_round=0). Prior iteration_5 bugs are fully resolved: (1) round-reason-3 now correctly says 'Opens after Round 2' via n-1 mapping; (2) 'Locked' is now the accepted state for future rounds; (3) start_datetime can be cleared to null via PUT /api/competition."
+}
