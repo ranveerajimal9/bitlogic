@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend regression test of the Round 1 (CodeCraft) 'Scratch 3 not available' bug fix. Setup: logged in as admin, PUT /api/competition {start_datetime: past, current_round:1}; created student r1test@test.com/Pass@123. Verified the 3 required behaviours: (1) iframe [data-testid=scratch-iframe] DOES load — src is https://turbowarp.org/editor, content_frame is reachable, all TurboWarp asset requests returned 200 with NO X-Frame-Options and NO restrictive CSP frame-ancestors, so the previous SAMEORIGIN block is definitively fixed; HOWEVER the loaded page inside the iframe renders TurboWarp's own anti-embed page 'Invalid TurboWarp Embed :(' with message 'You need to replace the iframe src with the embed page: https://turbowarp.org/<project ID>/embed'. TurboWarp detects iframe embedding of /editor and refuses to render the Scratch GUI. So while the framing is no longer blocked at the browser level, students still do NOT see a working embedded Scratch 3 editor. (2) 'Open in new tab' button, project-link input, and Submit are all visible and Submit produces the toast 'Project link submitted!' (POST /api/rounds/1/submit succeeded). (3) Access control works — after PUT /api/competition {current_round:0}, /round/1 renders 'Round 1 isn't available' for the same student (iframe not rendered). Cleanup performed: rounds reset, current_round=0, test student deleted.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Round1.jsx iframe",
+        "issue": "iframe src=https://turbowarp.org/editor when embedded shows TurboWarp's own 'Invalid TurboWarp Embed :(' page (frame body starts with that text; docs link points to docs.turbowarp.org/embedding). TurboWarp gates its editor route so it cannot be embedded — only per-project /<id>/embed player URLs are embeddable, and those are project *players*, not the editor. Net effect for students: the fix eliminates the X-Frame-Options error but the visible iframe content is still unusable. The overlay 'Loading the Scratch 3 editor…' is covered by the iframe (z-10 over z-0) so the user is left staring at the red 'Invalid TurboWarp Embed' page.",
+        "selector": "[data-testid='scratch-iframe']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/round1_loaded.png"],
+  "action_items": [
+    "Round 1 embedded editor is still not functional. TurboWarp does not permit embedding of its /editor route. Options to fix: (a) Self-host scratch-gui / turbowarp-editor as a static asset under /scratch and iframe that instead. (b) Drop the embedded-editor promise entirely: show the fallback overlay as the primary UI and require students to open TurboWarp in a new tab (open-scratch-btn) and only submit the project share URL — remove the iframe or replace it with an image/onboarding card. (c) Try alternative embeddable editors (e.g. https://scratch3.turbowarp.org/ variants or a self-hosted PenguinMod/scratch-gui build). Recommendation: (a) or (b).",
+    "If keeping an iframe as a placeholder, at minimum change the loading overlay z-index above the iframe until the frame's document is verified to be the real editor, or detect the 'Invalid TurboWarp Embed' response and hide the iframe."
+  ],
+  "critical_code_review_comments": [
+    "Round1.jsx: iframe overlay uses z-0 behind an always-visible iframe (z-10). Even when the iframe content is a broken/rejection page, the fallback message is fully hidden. Consider showing the fallback until an onload success signal is received (though same-origin restrictions make content inspection impossible).",
+    "Round1.jsx height math: style height 'calc(100vh - 64px - 65px - 40px)' is fragile — it hardcodes navbar/toolbar/footer heights and will break on responsive wrap of the toolbar (which is flex-wrap). Consider using flexbox flex-1 with explicit min-h-0 on parent.",
+    "Round1.jsx allowlist on iframe includes 'clipboard-write' but not 'clipboard-read'; Scratch editors often want both for copy/paste of costumes/code.",
+    "Access-control check in useEffect uses `!comp.started || comp.current_round < 1` — good, but also should handle `user === null` case to avoid a transient allowed=true render before user hydrates."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "not tested (frontend only)", "frontend": "2/3 required scenarios pass; 1 fails (embedded editor still non-functional despite unblocked framing)" },
+  "test_credentials": "Admin: ranveerajimal9@gmail.com / Bitlogic@2026. Test student created dynamically: r1test@test.com / Pass@123 (deleted at end).",
+  "seed_data_creation": "Created & deleted student r1test@test.com; toggled competition current_round to 1 then reset to 0 with rounds/reset.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "The framing block is fully fixed (no X-Frame-Options, no CSP frame-ancestors block on turbowarp.org responses). The remaining bug is application-level: TurboWarp's /editor route programmatically detects iframe embedding and serves an 'Invalid TurboWarp Embed :(' page. To verify any new fix, load /round/1 as a qualified student and inspect the iframe content_frame's body innerText — it must NOT contain 'Invalid TurboWarp Embed' and should contain Scratch/Blockly GUI markers (e.g. .blocklyDiv, [class*=gui]). Login button label is 'Log In' not 'Login'. Competition PUT accepts partial payloads {current_round, start_datetime}.",
+  "rca of the issue": "Root cause of the residual failure: TurboWarp intentionally refuses to run its full editor inside an iframe. When /editor is loaded in a frame, TurboWarp's client-side code (or server routing) redirects/renders a self-service error page pointing to docs.turbowarp.org/embedding, insisting the embed src be https://turbowarp.org/<project ID>/embed (a project *player*, not the editor). Therefore replacing scratch.mit.edu (which blocks at HTTP header level via X-Frame-Options: SAMEORIGIN) with turbowarp.org/editor removes the browser-level frame error but does NOT deliver a working embedded editor. Mitigation: either self-host an editor (recommended: bundle turbowarp/scratch-gui as a static site served from the app origin and iframe /scratch/editor/index.html) or pivot the UX so students open the editor in a new tab and only submit the share link inside the app."
+}
