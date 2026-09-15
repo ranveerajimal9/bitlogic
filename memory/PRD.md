@@ -29,6 +29,7 @@ BITLOGIC (Think. Create. Solve. Code.) — a computer-based student competition 
 - Admin panel: competition control (start datetime, active round, finalize R1/R2/R3, reset), students CRUD + per-round scoring + submissions viewer, puzzle CRUD.
 - Qualification funnel enforced on finalize (top 10 → top 5 → overall winner) with round-winner marking.
 - Public leaderboard sorted by total points with winner/eliminated badges.
+- **Sudden-death Tie-Breaker (2026-09-15)**: admin fires a tie-breaker question to selected tied finalists; students answer one-shot (live-polled dashboard card); fastest correct answer highlighted; admin declares winner (overrides prior overall winner); clear rolls back a mistaken declaration. Verified end-to-end (7/7 frontend scenarios).
 - Fully responsive, tested backend (20/22 → fixes applied) + frontend critical flows.
 
 ## Backlog

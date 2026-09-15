@@ -525,7 +525,13 @@ async def answer_tiebreaker(data: TieAnswerInput, request: Request):
     correct = data.answer.strip().lower() == tb["correct_answer"].strip().lower()
     resp = {"student_id": uid, "name": user.get("name", ""), "answer": data.answer.strip(),
             "submitted_at": datetime.now(timezone.utc).isoformat(), "correct": correct}
-    await db.competition.update_one({"_id": "config"}, {"$push": {"tiebreaker.responses": resp}})
+    # Conditional push guards against a double-submit race (one shot only).
+    res = await db.competition.update_one(
+        {"_id": "config", "tiebreaker.responses.student_id": {"$ne": uid}},
+        {"$push": {"tiebreaker.responses": resp}},
+    )
+    if res.modified_count == 0:
+        raise HTTPException(status_code=400, detail="You have already answered — sudden death is final")
     return {"message": "Answer locked in", "correct": correct}
 
 @api_router.post("/tiebreaker/declare")
@@ -539,11 +545,18 @@ async def declare_tiebreaker(data: DeclareInput, admin: dict = Depends(require_a
     tb["winner_id"] = data.student_id
     tb["active"] = False
     await db.competition.update_one({"_id": "config"}, {"$set": {"tiebreaker": tb}})
+    # A tie-breaker settles the final tie, so it overrides any prior overall winner.
+    await db.users.update_many({"role": "student"}, {"$set": {"overall_winner": False}})
     await db.users.update_one({"_id": ObjectId(data.student_id)}, {"$set": {"overall_winner": True}, "$addToSet": {"round_wins": 3}})
     return _tb_admin(tb)
 
 @api_router.delete("/tiebreaker")
 async def clear_tiebreaker(admin: dict = Depends(require_admin)):
+    cfg = await get_config()
+    tb = cfg.get("tiebreaker")
+    # Roll back a mistakenly-declared winner so no stale champion remains.
+    if tb and tb.get("winner_id"):
+        await db.users.update_one({"_id": ObjectId(tb["winner_id"])}, {"$set": {"overall_winner": False}, "$pull": {"round_wins": 3}})
     await db.competition.update_one({"_id": "config"}, {"$unset": {"tiebreaker": ""}})
     return {"message": "Tie-breaker cleared"}
 
