@@ -19,8 +19,8 @@ export default function Navbar() {
   }
   if (user && user.role === "admin") {
     links.push({ to: "/admin", label: "Admin", icon: ShieldCheck });
+    links.push({ to: "/leaderboard", label: "Leaderboard", icon: Trophy });
   }
-  links.push({ to: "/leaderboard", label: "Leaderboard", icon: Trophy });
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-white/10">

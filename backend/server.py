@@ -354,7 +354,7 @@ async def reset_competition(admin: dict = Depends(require_admin)):
 
 # ---------------- Leaderboard ----------------
 @api_router.get("/leaderboard")
-async def leaderboard():
+async def leaderboard(admin: dict = Depends(require_admin)):
     students = await db.users.find({"role": "student"}).to_list(1000)
     result = []
     for u in students:
