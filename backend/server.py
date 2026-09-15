@@ -248,13 +248,15 @@ async def competition_public():
 @api_router.put("/competition")
 async def update_competition(data: CompetitionUpdate, admin: dict = Depends(require_admin)):
     update = {}
-    if data.start_datetime is not None:
-        update["start_datetime"] = data.start_datetime
+    fields = data.model_fields_set
+    if "start_datetime" in fields:
+        update["start_datetime"] = data.start_datetime  # may be None to clear the date
     if data.current_round is not None:
         if data.current_round not in (0, 1, 2, 3):
             raise HTTPException(status_code=400, detail="Invalid round")
         update["current_round"] = data.current_round
-    await db.competition.update_one({"_id": "config"}, {"$set": update}, upsert=True)
+    if update:
+        await db.competition.update_one({"_id": "config"}, {"$set": update}, upsert=True)
     return await competition_public()
 
 # ---------------- Student / scoring ----------------

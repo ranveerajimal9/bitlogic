@@ -128,10 +128,10 @@ export default function Dashboard() {
                 const Icon = meta.icon;
                 const state = roundState(n);
                 const reason = {
-                  locked: comp.current_round === 0
-                    ? "Not open yet — waiting for the organiser to start a round."
-                    : `Opens after Round ${comp.current_round} — the organiser controls when.`,
-                  "not-qualified": `You didn't qualify for this round. Only the top finishers of Round ${n - 1} advance.`,
+                  locked: n === 1
+                    ? "Not open yet — waiting for the organiser to start Round 1."
+                    : `Opens after Round ${n - 1}. Only qualifiers from the previous round advance.`,
+                  "not-qualified": `You didn't advance to this round — only the top finishers of Round ${n - 1} qualify.`,
                   finalized: "This round has been graded and closed.",
                 }[state];
                 return (

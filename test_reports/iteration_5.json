@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend UX testing of the 'why is it locked' fix on student Dashboard. Verified the three scenarios via API-driven state setup + browser assertions on data-testid selectors. Scenarios 1 (past start, current_round=0) and 3 (future start, gate visible) fully pass. Scenario 2 (current_round=1) partially passes: banner shows 'Round 1 is currently open', enter-round-1 button renders and navigates to /round/1, and Round 1 has no reason line. However, Rounds 2 and 3 render with 'Locked' state and reason 'Opens after Round 1 — the organiser controls when.' instead of the 'Not Qualified' state with 'Only the top finishers of Round N-1 advance' reason that the review request specified. Root cause: in Dashboard.jsx roundState(), the 'locked' check (comp.current_round < n) fires before the 'not-qualified' check, so a student with qualified_round=1 viewing round 2 while current_round=1 falls through to 'locked'. Admin PUT /api/competition works for start_datetime and current_round changes. Test student created and deleted. NOTE: backend PUT /api/competition cannot reset start_datetime to null (the endpoint ignores null because of `if data.start_datetime is not None`), so cleanup left start_datetime set to a FUTURE ISO timestamp with current_round=0 — the competition is effectively in a not-started clean state (dashboard-gate shown, started=False), but start_datetime is not literally null as requested.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/competition", "issue": "Cannot clear start_datetime — `if data.start_datetime is not None` skips null payloads, so the field can never be reset to None via the API. Consider using a sentinel or `data.model_fields_set` check."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Dashboard.jsx roundState()", "issue": "Order-of-checks bug: when current_round=1 and user.qualified_round=1, Rounds 2/3 return 'locked' (button 'Locked', reason 'Opens after Round 1 — the organiser controls when.') instead of the spec-required 'not-qualified' with 'Only the top finishers of Round N-1 advance.'. If the intended UX is to show 'Not Qualified' for future rounds the student hasn't advanced to, swap the ordering so `user.qualified_round < n` is checked before `comp.current_round < n`, or combine both signals into a smarter reason.", "selector": "[data-testid='round-reason-2'], [data-testid='round-reason-3']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Decide correct UX for Rounds 2/3 while current_round=1: either (a) reorder roundState so not-qualified beats locked when both apply, matching the review spec, or (b) update the review-request expectation. Current implementation always shows 'locked' first.",
+    "Fix PUT /api/competition to accept an explicit null to clear start_datetime (needed for admin/test reset flows)."
+  ],
+  "critical_code_review_comments": [
+    "roundState precedence in Dashboard.jsx (lines 39–44) does not match the review-request spec for Rounds 2/3 messaging when a round is active.",
+    "Backend PUT /api/competition partial-update logic (server.py lines 251–256) treats null as 'no change' which prevents explicit clearing of start_datetime; use Pydantic `model_fields_set` or a distinct sentinel."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only run; admin PUT verified working)", "frontend": "83% (5 of 6 spec bullets pass; rounds 2/3 reason text on Scenario 2 fails)"},
+  "test_credentials": "Admin ranveerajimal9@gmail.com / Bitlogic@2026; test student lockcheck@test.com / Pass@123 (created and deleted during run).",
+  "seed_data_creation": "Created and deleted student lockcheck@test.com within the test.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Competition currently: start_datetime set ~7 days in future, current_round=0, started=False (dashboard-gate visible). If a truly null start_datetime is required, either fix the PUT endpoint or clear via db directly. Test student lockcheck@test.com already deleted. Admin creds unchanged.",
+  "rca of the issue": "Dashboard.jsx roundState(): `if (comp.current_round < n) return 'locked';` short-circuits before the not-qualified branch. For a student with qualified_round=1, Rounds 2 and 3 while current_round=1 satisfy BOTH conditions, but 'locked' wins due to ordering. Reproduction: set current_round=1, log in as any student with qualified_round=1, observe rounds 2/3 show 'Locked' + 'Opens after Round 1' reason instead of 'Not Qualified' + 'top finishers advance' as the review request expected. Fix: swap the two conditions, or compute a composite reason such as `state==='locked' && user.qualified_round<n` → show not-qualified messaging."
+}
