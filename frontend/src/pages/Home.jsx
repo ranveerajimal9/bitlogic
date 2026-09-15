@@ -51,10 +51,10 @@ export default function Home() {
               <Sparkles className="w-3.5 h-3.5" /> Computer-Based Competition
             </span>
             <img
-              src="/bitlogic-logo.png"
+              src="/bitlogic-wordmark.png"
               alt="BITLOGIC"
               data-testid="hero-logo"
-              className="w-52 sm:w-64 lg:w-72 h-auto -ml-2 animate-float drop-shadow-[0_0_40px_rgba(0,224,255,0.35)]"
+              className="w-full max-w-md lg:max-w-lg h-auto -ml-2 drop-shadow-[0_0_40px_rgba(0,224,255,0.35)]"
             />
             <p className="mt-6 text-lg sm:text-xl text-muted-foreground max-w-xl">
               Think. Create. Solve. Code. A three-round battle of creativity, logic and programming for the sharpest young minds.
