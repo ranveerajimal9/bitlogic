@@ -164,13 +164,16 @@ async def register(data: RegisterInput, response: Response):
     }
     res = await db.users.insert_one(doc)
     doc["_id"] = res.inserted_id
+    await db.login_attempts.delete_many({"email": email})
     access = create_access_token(str(res.inserted_id), email)
     refresh = create_refresh_token(str(res.inserted_id))
     set_auth_cookies(response, access, refresh)
     return {"user": serialize_user(doc), "token": access}
 
-async def check_lockout(identifier: str):
-    rec = await db.login_attempts.find_one({"identifier": identifier})
+async def check_lockout(email: str):
+    # Keyed by email — behind k8s ingress request.client.host is the rotating proxy IP,
+    # so an IP-based key never accumulates for a real attacker.
+    rec = await db.login_attempts.find_one({"email": email})
     if rec and rec.get("count", 0) >= 5:
         locked_until = rec.get("locked_until")
         if locked_until and datetime.fromisoformat(locked_until) > datetime.now(timezone.utc):
@@ -179,18 +182,17 @@ async def check_lockout(identifier: str):
 @api_router.post("/auth/login")
 async def login(data: LoginInput, request: Request, response: Response):
     email = data.email.lower()
-    ip = request.client.host if request.client else "unknown"
-    identifier = f"{ip}:{email}"
-    await check_lockout(identifier)
+    await check_lockout(email)
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(data.password, user["password_hash"]):
-        await db.login_attempts.update_one(
-            {"identifier": identifier},
-            {"$inc": {"count": 1}, "$set": {"email": email, "locked_until": (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()}},
-            upsert=True,
-        )
+        rec = await db.login_attempts.find_one({"email": email})
+        count = (rec.get("count", 0) if rec else 0) + 1
+        update = {"$set": {"email": email, "count": count}}
+        if count >= 5:
+            update["$set"]["locked_until"] = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
+        await db.login_attempts.update_one({"email": email}, update, upsert=True)
         raise HTTPException(status_code=401, detail="Invalid email or password")
-    await db.login_attempts.delete_many({"identifier": identifier})
+    await db.login_attempts.delete_many({"email": email})
     access = create_access_token(str(user["_id"]), email)
     refresh = create_refresh_token(str(user["_id"]))
     set_auth_cookies(response, access, refresh)
@@ -465,7 +467,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup():
     await db.users.create_index("email", unique=True)
-    await db.login_attempts.create_index("identifier")
+    await db.login_attempts.create_index("email")
     await get_config()
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")

@@ -1,0 +1,57 @@
+{
+  "summary": "Comprehensive backend + frontend E2E testing of BITLOGIC. Backend: 20/22 tests pass (91%). Frontend: All critical flows verified (admin login, config, add student, create puzzle, student login, dashboard gate & rounds, Round 1 submit, leaderboard).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Brute-force lockout is unreliable. `request.client.host` returns the k8s ingress pod IP (which rotates), so identifier `ip:email` differs across requests and the count rarely reaches 5 for the same combination. Test observed lockout (429) triggered once then reverted to 401 on subsequent attempts. Should use X-Forwarded-For / real client IP, or key lockout by email only.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/students (bulk create)",
+        "issue": "Occasional 502/HTML response when creating many students in rapid succession from finalize test (JSONDecodeError). Appears to be transient ingress issue; not consistently reproducible. Consider batching or rate-limit hardening."
+      },
+      {
+        "endpoint": "/api/auth/login",
+        "issue": "Successful register does not clear login_attempts for that email; also failed login always resets locked_until forward on every attempt effectively extending lockout indefinitely as long as attacker keeps trying."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Round 1 (Scratch iframe)",
+       "issues": ["scratch.mit.edu sets X-Frame-Options=sameorigin so iframe never renders; only a blank frame appears. Consider showing a fallback link or a message telling users to open Scratch in a new tab. Element exists as required per spec."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix brute-force lockout: use X-Forwarded-For real client IP or key by email only; also clear login_attempts on successful register/reset.",
+    "Consider a fallback UI when scratch.mit.edu refuses to be framed (open-in-new-tab button)."
+  ],
+  "critical_code_review_comments": [
+    "Auth lockout `check_lockout` relies on `request.client.host` which behind k8s ingress is the pod IP, defeating the lockout.",
+    "In login failure path, `locked_until` is unconditionally overwritten on every attempt; if you also increment past 5, the lockout keeps extending on every wrong try (annoying but acceptable). Fine as-is.",
+    "server.py is ~485 lines and mixes auth, competition, students, puzzles, submissions. Consider splitting into routers (auth.py, competition.py, students.py, puzzles.py, submissions.py) as the app grows.",
+    "`serialize_user` and student creation logic duplicated between /auth/register and /students POST — extract helper.",
+    "Missing password strength validation on register / student create.",
+    "MongoDB _id correctly excluded via serialize_user; good.",
+    "CORS uses `allow_origins=[FRONTEND_URL, http://localhost:3000]` with `allow_credentials=True` — correct (no wildcard with credentials)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (new)"
+  ],
+  "success_rate": {"backend": "91% (20/22)", "frontend": "100% of critical flows"},
+  "test_credentials": "Admin: ranveerajimal9@gmail.com / Bitlogic@2026. Test student created dynamically per run.",
+  "seed_data_creation": "Tests create TEST_/test_ prefixed students & puzzles and clean up via reset endpoint.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests must be run non-parallel (-o addopts=) because they mutate shared competition config. Existing test file at /app/backend/tests/backend_test.py covers all endpoints. Main gap: brute-force lockout bug + finalize test occasionally flaky under load.",
+  "rca of the issue": "Brute-force lockout keys the counter by `request.client.host + email`. Behind the Kubernetes ingress, `request.client.host` is the ingress proxy IP (not the true client), and the environment routes different requests through different upstream connections leading to varying `client.host` values. Result: the counter is spread across several identifiers and rarely accumulates to the 5-attempt threshold for a real attacker. Mitigation: parse `X-Forwarded-For` (first hop) or key the lockout by email only (with an admin exclusion) or by hashed identifier of email+first-XFF."
+}

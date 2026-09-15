@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="22" time="21.485" timestamp="2026-09-15T12:46:01.388569+00:00" hostname="agent-env-77ed675f-6f03-43f8-992e-01928d19bc13"><testcase classname="tests.backend_test.TestAuth" name="test_health" time="0.148" /><testcase classname="tests.backend_test.TestAuth" name="test_admin_login_and_me" time="0.421" /><testcase classname="tests.backend_test.TestAuth" name="test_login_invalid" time="0.139" /><testcase classname="tests.backend_test.TestAuth" name="test_logout_clears_cookie" time="0.549" /><testcase classname="tests.backend_test.TestAuth" name="test_register_public_student" time="2.242" /><testcase classname="tests.backend_test.TestAuth" name="test_brute_force_lockout" time="3.024"><failure message="AssertionError: no 429 after repeated failed logins&#10;assert False">backend/tests/backend_test.py:96: in test_brute_force_lockout
+    assert got_lock, "no 429 after repeated failed logins"
+E   AssertionError: no 429 after repeated failed logins
+E   assert False</failure></testcase><testcase classname="tests.backend_test.TestCompetition" name="test_public_competition" time="0.141" /><testcase classname="tests.backend_test.TestCompetition" name="test_admin_can_update" time="0.070" /><testcase classname="tests.backend_test.TestCompetition" name="test_non_admin_cannot_update" time="0.787" /><testcase classname="tests.backend_test.TestCompetition" name="test_invalid_round" time="0.073" /><testcase classname="tests.backend_test.TestScoring" name="test_score_ranges" time="0.564" /><testcase classname="tests.backend_test.TestScoring" name="test_score_requires_admin" time="0.756" /><testcase classname="tests.backend_test.TestRoundAccess" name="test_round1_submit_flow" time="0.791" /><testcase classname="tests.backend_test.TestRoundAccess" name="test_round2_blocked_for_unqualified" time="0.873" /><testcase classname="tests.backend_test.TestRoundAccess" name="test_round_not_open" time="0.926" /><testcase classname="tests.backend_test.TestPuzzles" name="test_admin_crud" time="0.223" /><testcase classname="tests.backend_test.TestPuzzles" name="test_invalid_correct_index" time="0.068" /><testcase classname="tests.backend_test.TestPuzzles" name="test_student_puzzles_no_answers" time="0.887" /><testcase classname="tests.backend_test.TestRound2Answers" name="test_mcq_submit" time="1.499" /><testcase classname="tests.backend_test.TestFinalize" name="test_finalize_r1_top10_and_winner" time="5.309"><failure message="requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)">/root/.venv/lib/python3.11/site-packages/requests/models.py:1116: in json
+    return complexjson.loads(self.text, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/__init__.py:346: in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:337: in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/local/lib/python3.11/json/decoder.py:355: in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+E   json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+
+During handling of the above exception, another exception occurred:
+backend/tests/backend_test.py:233: in test_finalize_r1_top10_and_winner
+    sid = r.json()["id"]
+          ^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/models.py:1120: in json
+    raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
+E   requests.exceptions.JSONDecodeError: Expecting value: line 1 column 1 (char 0)</failure></testcase><testcase classname="tests.backend_test.TestLeaderboard" name="test_leaderboard_sorted" time="1.245" /><testcase classname="tests.backend_test.TestReset" name="test_reset_clears" time="0.642" /></testsuite></testsuites>
