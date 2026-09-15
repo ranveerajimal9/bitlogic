@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Settings2, Users, Puzzle, Trash2, Save, Trophy, Eye, RotateCcw, Plus, Flag, Loader2 } from "lucide-react";
+import { Settings2, Users, Puzzle, Trash2, Save, Trophy, Eye, RotateCcw, Plus, Flag, Loader2, Swords, Crown, Clock } from "lucide-react";
 
 export default function Admin() {
   const [comp, setComp] = useState(null);
@@ -46,15 +46,17 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="control">
-          <TabsList className="bg-black/40 border border-white/10">
+          <TabsList className="bg-black/40 border border-white/10 flex-wrap h-auto">
             <TabsTrigger value="control" data-testid="tab-control"><Settings2 className="w-4 h-4 mr-2" /> Control</TabsTrigger>
             <TabsTrigger value="students" data-testid="tab-students"><Users className="w-4 h-4 mr-2" /> Students</TabsTrigger>
             <TabsTrigger value="puzzles" data-testid="tab-puzzles"><Puzzle className="w-4 h-4 mr-2" /> Puzzles</TabsTrigger>
+            <TabsTrigger value="tiebreaker" data-testid="tab-tiebreaker"><Swords className="w-4 h-4 mr-2" /> Tie-Breaker</TabsTrigger>
           </TabsList>
 
           <TabsContent value="control"><ControlTab comp={comp} dateInput={dateInput} setDateInput={setDateInput} reload={load} /></TabsContent>
           <TabsContent value="students"><StudentsTab comp={comp} students={students} reload={load} /></TabsContent>
           <TabsContent value="puzzles"><PuzzlesTab puzzles={puzzles} reload={load} /></TabsContent>
+          <TabsContent value="tiebreaker"><TieBreakerTab students={students} /></TabsContent>
         </Tabs>
       </main>
     </div>
@@ -358,3 +360,144 @@ function PuzzlesTab({ puzzles, reload }) {
     </div>
   );
 }
+
+function TieBreakerTab({ students }) {
+  const [tb, setTb] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [selected, setSelected] = useState([]);
+
+  const load = useCallback(async () => {
+    const { data } = await api.get("/tiebreaker");
+    setTb(data && data.active === false && !data.id ? null : data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 4000); // live sudden-death polling
+    return () => clearInterval(id);
+  }, [load]);
+
+  const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+
+  const fire = async () => {
+    if (!question.trim() || !answer.trim()) { toast.error("Enter a question and the correct answer"); return; }
+    if (selected.length < 2) { toast.error("Select at least 2 tied finalists"); return; }
+    try {
+      await api.post("/tiebreaker", { question: question.trim(), correct_answer: answer.trim(), participant_ids: selected });
+      toast.success("Sudden-death tie-breaker fired!");
+      setQuestion(""); setAnswer(""); setSelected([]);
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const declare = async (student_id) => {
+    if (!window.confirm("Declare this finalist the winner of the tie-breaker?")) return;
+    try { await api.post("/tiebreaker/declare", { student_id }); toast.success("Winner declared!"); load(); }
+    catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+  };
+
+  const clear = async () => {
+    if (!window.confirm("Clear this tie-breaker?")) return;
+    await api.delete("/tiebreaker");
+    toast.success("Tie-breaker cleared");
+    setTb(null);
+    load();
+  };
+
+  if (loading) return <div className="flex justify-center py-16"><Loader2 className="w-7 h-7 animate-spin text-primary" /></div>;
+
+  const active = tb && tb.id;
+
+  if (active) {
+    const responses = tb.responses || [];
+    const firstCorrectId = responses.find((r) => r.correct)?.student_id;
+    return (
+      <div className="mt-6 space-y-5">
+        <div className="glass rounded-2xl p-6 border-secondary/30">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 text-secondary text-xs uppercase tracking-[0.2em]">
+                <Swords className="w-4 h-4" /> Sudden Death {tb.winner_id ? "· Resolved" : "· Live"}
+              </div>
+              <h3 className="font-display font-bold text-xl mt-2">{tb.question}</h3>
+              <p className="text-sm text-muted-foreground mt-1">Correct answer: <span className="font-mono text-accent">{tb.correct_answer}</span></p>
+            </div>
+            <Button onClick={clear} variant="outline" data-testid="clear-tiebreaker" className="rounded-full border-destructive/40 text-destructive hover:bg-destructive/10">
+              <Trash2 className="w-4 h-4 mr-2" /> Clear
+            </Button>
+          </div>
+
+          <div className="mt-6 grid sm:grid-cols-2 gap-3">
+            {tb.participants.map((p) => {
+              const resp = responses.find((r) => r.student_id === p.id);
+              const isFirstCorrect = p.id === firstCorrectId;
+              const isWinner = tb.winner_id === p.id;
+              return (
+                <div key={p.id} className={`rounded-xl border p-4 ${isWinner ? "border-accent bg-accent/10" : isFirstCorrect ? "border-accent/40" : "border-white/10"}`} data-testid={`tb-participant-${p.id}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium flex items-center gap-2">
+                      {isWinner && <Crown className="w-4 h-4 text-accent" />} {p.name}
+                    </span>
+                    {resp ? (
+                      <Badge className={resp.correct ? "bg-accent text-black" : "bg-white/10 text-muted-foreground"}>
+                        {resp.correct ? "Correct" : "Wrong"}
+                      </Badge>
+                    ) : <Badge variant="outline" className="border-white/15 text-muted-foreground"><Clock className="w-3 h-3 mr-1" /> Waiting</Badge>}
+                  </div>
+                  {resp && (
+                    <p className="text-sm mt-2 text-muted-foreground">
+                      Answered <span className="font-mono text-foreground">"{resp.answer}"</span>
+                      <span className="block text-xs mt-0.5">at {new Date(resp.submitted_at).toLocaleTimeString()}{isFirstCorrect && !tb.winner_id ? " · fastest correct" : ""}</span>
+                    </p>
+                  )}
+                  {!tb.winner_id && (
+                    <Button size="sm" onClick={() => declare(p.id)} data-testid={`declare-winner-${p.id}`} className="mt-3 rounded-full bg-accent text-black font-semibold h-8">
+                      <Trophy className="w-3.5 h-3.5 mr-1" /> Declare Winner
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {tb.winner_id && (
+            <p className="mt-5 text-accent font-medium flex items-center gap-2" data-testid="tb-resolved">
+              <Crown className="w-5 h-5" /> Winner declared. This finalist is now the overall champion.
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 glass rounded-2xl p-6">
+      <h3 className="font-display font-bold text-xl mb-1 flex items-center gap-2"><Swords className="w-5 h-5 text-secondary" /> Fire a Sudden-Death Tie-Breaker</h3>
+      <p className="text-sm text-muted-foreground mb-5">When finalists finish level on points, pick the tied students, set a quick question, and the fastest correct answer wins.</p>
+
+      <Label className="text-xs uppercase tracking-widest text-muted-foreground">Question</Label>
+      <Input value={question} onChange={(e) => setQuestion(e.target.value)} data-testid="tb-question" className="mt-2 mb-4 bg-black/40 border-white/10 h-11" placeholder="e.g. What is the 7th prime number?" />
+      <Label className="text-xs uppercase tracking-widest text-muted-foreground">Correct Answer</Label>
+      <Input value={answer} onChange={(e) => setAnswer(e.target.value)} data-testid="tb-answer" className="mt-2 mb-5 bg-black/40 border-white/10 h-11" placeholder="e.g. 17" />
+
+      <Label className="text-xs uppercase tracking-widest text-muted-foreground">Tied Finalists ({selected.length} selected)</Label>
+      <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {students.length === 0 && <p className="text-sm text-muted-foreground">No students available.</p>}
+        {students.map((s) => (
+          <button key={s.id} onClick={() => toggle(s.id)} data-testid={`tb-select-${s.id}`}
+            className={`text-left px-4 py-3 rounded-xl border transition-colors ${selected.includes(s.id) ? "border-secondary bg-secondary/15 text-foreground" : "border-white/10 hover:border-white/25 text-muted-foreground"}`}>
+            <span className="font-medium block truncate">{s.name}</span>
+            <span className="text-xs opacity-70">Total: {Object.values(s.scores || {}).reduce((a, v) => a + (typeof v === "number" ? v : 0), 0)} pts</span>
+          </button>
+        ))}
+      </div>
+
+      <Button onClick={fire} data-testid="fire-tiebreaker" className="mt-6 rounded-full bg-secondary text-white font-semibold glow-pink">
+        <Swords className="w-4 h-4 mr-2" /> Fire Sudden Death
+      </Button>
+    </div>
+  );
+}
+

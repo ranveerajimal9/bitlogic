@@ -110,7 +110,6 @@ export default function Round1() {
           </div>
         </div>
       </div>
-      </div>
       <div className="bg-black/60 border-t border-white/10 px-4 py-2 text-xs text-muted-foreground flex items-center gap-2">
         <ExternalLink className="w-3.5 h-3.5" />
         Build your story or game above. Save it in Scratch, then paste the share link and click Submit for the judges.

@@ -1,13 +1,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { api } from "@/lib/api";
+import { api, formatApiErrorDetail } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Countdown from "@/components/Countdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Blocks, Puzzle, Code2, Lock, Clock, Trophy, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { Blocks, Puzzle, Code2, Lock, Clock, Trophy, CheckCircle2, XCircle, ArrowRight, Swords, Crown, Send, Loader2 } from "lucide-react";
 
 const ROUND_META = {
   1: { title: "CodeCraft", tag: "Scratch story / game", icon: Blocks, color: "text-primary", path: "/round/1" },
@@ -64,6 +66,8 @@ export default function Dashboard() {
             </div>
           </div>
         </motion.div>
+
+        <TieBreakerCard />
 
         {/* GATE */}
         {!started && (
@@ -140,5 +144,73 @@ export default function Dashboard() {
         )}
       </main>
     </div>
+  );
+}
+
+function TieBreakerCard() {
+  const [tb, setTb] = useState(null);
+  const [answer, setAnswer] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const { data } = await api.get("/tiebreaker");
+      setTb(data);
+    } catch (e) { setTb(null); }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 4000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  if (!tb || !tb.active && !tb.resolved) return null;
+
+  const submit = async () => {
+    if (!answer.trim()) { toast.error("Type your answer"); return; }
+    setSaving(true);
+    try {
+      await api.post("/tiebreaker/answer", { answer });
+      toast.success("Answer locked in — sudden death!");
+      load();
+    } catch (e) { toast.error(formatApiErrorDetail(e.response?.data?.detail)); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="mt-6 glass rounded-3xl p-6 sm:p-8 border-secondary/40 glow-pink relative overflow-hidden" data-testid="tiebreaker-card">
+      <div className="absolute -top-16 -right-16 w-56 h-56 bg-secondary/15 rounded-full blur-3xl" />
+      <div className="relative">
+        <div className="flex items-center gap-2 text-secondary text-xs uppercase tracking-[0.2em]">
+          <Swords className="w-4 h-4" /> Sudden-Death Tie-Breaker
+        </div>
+
+        {tb.resolved ? (
+          <div className="mt-4" data-testid="tb-student-result">
+            {tb.is_winner ? (
+              <p className="font-display font-bold text-2xl text-accent flex items-center gap-2"><Crown className="w-6 h-6" /> You won the tie-breaker! 🏆</p>
+            ) : (
+              <p className="font-display font-bold text-xl text-muted-foreground">The tie-breaker has been decided. Better luck next time!</p>
+            )}
+          </div>
+        ) : (
+          <>
+            <h3 className="font-display font-bold text-2xl mt-3">{tb.question}</h3>
+            {tb.answered ? (
+              <p className="mt-4 text-accent flex items-center gap-2" data-testid="tb-answered"><CheckCircle2 className="w-5 h-5" /> Answer locked: <span className="font-mono">"{tb.my_answer}"</span> — awaiting the judge's decision.</p>
+            ) : (
+              <div className="mt-5 flex gap-2 max-w-md">
+                <Input value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Your answer — be fast!" data-testid="tb-answer-input" className="bg-black/40 border-white/10 h-11" onKeyDown={(e) => e.key === "Enter" && submit()} />
+                <Button onClick={submit} disabled={saving} data-testid="tb-submit-answer" className="rounded-full bg-secondary text-white font-semibold shrink-0">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4 mr-2" /> Lock In</>}
+                </Button>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">One shot only — the fastest correct answer takes the crown.</p>
+          </>
+        )}
+      </div>
+    </motion.div>
   );
 }

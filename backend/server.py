@@ -450,6 +450,103 @@ async def student_submissions(student_id: str, admin: dict = Depends(require_adm
     subs = await db.submissions.find({"student_id": student_id}).to_list(100)
     return {s["round"]: {"content": s.get("content"), "answers": s.get("answers"), "correct_count": s.get("correct_count"), "total_questions": s.get("total_questions"), "updated_at": s.get("updated_at")} for s in subs}
 
+# ---------------- Tie-Breaker (sudden death) ----------------
+class TieBreakerInput(BaseModel):
+    question: str
+    correct_answer: str
+    participant_ids: List[str]
+
+class TieAnswerInput(BaseModel):
+    answer: str
+
+class DeclareInput(BaseModel):
+    student_id: str
+
+@api_router.post("/tiebreaker")
+async def create_tiebreaker(data: TieBreakerInput, admin: dict = Depends(require_admin)):
+    if len(data.participant_ids) < 2:
+        raise HTTPException(status_code=400, detail="Select at least 2 tied finalists")
+    parts = await db.users.find({"_id": {"$in": [ObjectId(pid) for pid in data.participant_ids]}, "role": "student"}).to_list(100)
+    participants = [{"id": str(p["_id"]), "name": p.get("name", "")} for p in parts]
+    tb = {
+        "id": str(ObjectId()),
+        "question": data.question.strip(),
+        "correct_answer": data.correct_answer.strip(),
+        "participants": participants,
+        "responses": [],
+        "winner_id": None,
+        "active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.competition.update_one({"_id": "config"}, {"$set": {"tiebreaker": tb}}, upsert=True)
+    return _tb_admin(tb)
+
+def _tb_admin(tb: dict) -> dict:
+    resp = sorted(tb.get("responses", []), key=lambda r: r["submitted_at"])
+    return {**tb, "responses": resp}
+
+@api_router.get("/tiebreaker")
+async def get_tiebreaker(request: Request):
+    user = await get_current_user(request)
+    cfg = await get_config()
+    tb = cfg.get("tiebreaker")
+    if not tb:
+        return {"active": False}
+    if user.get("role") == "admin":
+        return _tb_admin(tb)
+    # student view
+    uid = str(user["_id"])
+    if not any(p["id"] == uid for p in tb.get("participants", [])):
+        return {"active": False}
+    my = next((r for r in tb.get("responses", []) if r["student_id"] == uid), None)
+    return {
+        "active": tb.get("active", False),
+        "id": tb["id"],
+        "question": tb["question"],
+        "answered": my is not None,
+        "my_answer": my["answer"] if my else None,
+        "winner_id": tb.get("winner_id"),
+        "is_winner": tb.get("winner_id") == uid,
+        "resolved": tb.get("winner_id") is not None,
+    }
+
+@api_router.post("/tiebreaker/answer")
+async def answer_tiebreaker(data: TieAnswerInput, request: Request):
+    user = await get_current_user(request)
+    cfg = await get_config()
+    tb = cfg.get("tiebreaker")
+    if not tb or not tb.get("active"):
+        raise HTTPException(status_code=400, detail="No active tie-breaker")
+    uid = str(user["_id"])
+    if not any(p["id"] == uid for p in tb.get("participants", [])):
+        raise HTTPException(status_code=403, detail="You are not part of this tie-breaker")
+    if any(r["student_id"] == uid for r in tb.get("responses", [])):
+        raise HTTPException(status_code=400, detail="You have already answered — sudden death is final")
+    correct = data.answer.strip().lower() == tb["correct_answer"].strip().lower()
+    resp = {"student_id": uid, "name": user.get("name", ""), "answer": data.answer.strip(),
+            "submitted_at": datetime.now(timezone.utc).isoformat(), "correct": correct}
+    await db.competition.update_one({"_id": "config"}, {"$push": {"tiebreaker.responses": resp}})
+    return {"message": "Answer locked in", "correct": correct}
+
+@api_router.post("/tiebreaker/declare")
+async def declare_tiebreaker(data: DeclareInput, admin: dict = Depends(require_admin)):
+    cfg = await get_config()
+    tb = cfg.get("tiebreaker")
+    if not tb:
+        raise HTTPException(status_code=400, detail="No tie-breaker exists")
+    if not any(p["id"] == data.student_id for p in tb.get("participants", [])):
+        raise HTTPException(status_code=400, detail="Winner must be a tie-breaker participant")
+    tb["winner_id"] = data.student_id
+    tb["active"] = False
+    await db.competition.update_one({"_id": "config"}, {"$set": {"tiebreaker": tb}})
+    await db.users.update_one({"_id": ObjectId(data.student_id)}, {"$set": {"overall_winner": True}, "$addToSet": {"round_wins": 3}})
+    return _tb_admin(tb)
+
+@api_router.delete("/tiebreaker")
+async def clear_tiebreaker(admin: dict = Depends(require_admin)):
+    await db.competition.update_one({"_id": "config"}, {"$unset": {"tiebreaker": ""}})
+    return {"message": "Tie-breaker cleared"}
+
 @api_router.get("/")
 async def root():
     return {"message": "BITLOGIC API"}
