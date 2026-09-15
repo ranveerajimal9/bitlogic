@@ -1,0 +1,123 @@
+{
+  "theme": "dark",
+  "archetype": "Electric & Neon (Future, Speed, Disruption) tailored for Tech Competition",
+  "typography": {
+    "fonts_to_install": [
+      "@fontsource/unbounded",
+      "@fontsource/outfit",
+      "@fontsource/jetbrains-mono"
+    ],
+    "headings": "Unbounded",
+    "body": "Outfit",
+    "mono": "JetBrains Mono",
+    "rules": [
+      "No Inter or generic fonts for headings.",
+      "Headings >32px MUST use tracking-tight.",
+      "Overlines MUST be uppercase + tiny + tracking-[0.2em].",
+      "Fluid scaling for heroes: text-4xl sm:text-5xl lg:text-6xl max.",
+      "Use JetBrains Mono for leaderboard points, countdown timers, and code editors."
+    ]
+  },
+  "colors": {
+    "background": "240 10% 4%",
+    "foreground": "0 0% 95%",
+    "card": "240 10% 6%",
+    "card_foreground": "0 0% 95%",
+    "border": "240 10% 12%",
+    "primary": "188 100% 50%",
+    "primary_foreground": "0 0% 0%",
+    "secondary": "341 100% 58%",
+    "secondary_foreground": "0 0% 100%",
+    "accent": "158 100% 42%",
+    "accent_foreground": "0 0% 0%",
+    "muted": "240 5% 15%",
+    "muted_foreground": "240 5% 65%"
+  },
+  "visual_enhancers": {
+    "glassmorphism": "backdrop-blur-xl bg-black/60 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.2)]",
+    "grid_borders": "border-collapse style, child items have border-r border-b border-border/40",
+    "retro_terminal": "scanlines overlay (CSS repeating-linear-gradient), subtle glow on active code lines",
+    "hover_states": "explicit text color on hover. Buttons lift (-translate-y-1) + shadow-lg."
+  },
+  "layouts": {
+    "landing_page": {
+      "strategy": "The 'Tetris' Grid (Asymmetrical)",
+      "rules": "Wide gaps (gap-8 to gap-12). Huge Unbounded typography. Marquee with 'THINK. CREATE. SOLVE. CODE.' in kinetic texture.",
+      "hero_overlay": "bg-black/50 maximum. Use gradient to transparent."
+    },
+    "dashboard_student": {
+      "strategy": "High Density Grid (Dashboards)",
+      "rules": "Tight gaps (gap-4). Every pixel utilized. Grid children must stretch to match neighbors. Sidebar for navigation."
+    },
+    "code_editor": {
+      "strategy": "3-Pane Workspace",
+      "rules": "Left: Problem/File tree. Center: Editor (Scratch or Java). Bottom: Terminal/Output. Use absolute/flex layouts to fill viewport height (100vh - header)."
+    }
+  },
+  "components_to_use": {
+    "Shadcn": ["Button", "Card", "Input", "Label", "Tabs", "Dialog", "Table", "ScrollArea", "Badge", "Separator"],
+    "Custom": [
+      "CountdownTimer (Huge Mono typography)",
+      "ScratchEmbed (iframe to Scratch 3)",
+      "JavaEditor (Monaco Editor or CodeMirror implementation wrapper)",
+      "Marquee (react-fast-marquee)"
+    ]
+  },
+  "motion": {
+    "rules": [
+      "Hover states must be explicit.",
+      "Use framer-motion for page transitions and leaderboard shuffling.",
+      "Smooth stagger effects for list items in leaderboard."
+    ]
+  },
+  "accessibility": {
+    "rules": [
+      "Minimum 4.5:1 contrast for normal text.",
+      "Include data-testid on all interactive elements (e.g. data-testid='login-button', data-testid='run-code-button').",
+      "Respect prefers-reduced-motion."
+    ]
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1561233835-f937539b95b9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHw0fHxjeWJlciUyMHRlY2hub2xvZ3klMjBhY2tncm91bmR8ZW58MHx8fHwxNzg5NDc1NTgyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract cyber technology background with lights, perfect for landing page hero."
+    },
+    "about_competition": {
+      "url": "https://images.unsplash.com/photo-1631350397792-8e0c2de5b637?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwyfHxzdHVkZW50cyUyMGNvZGluZyUyMGhhY2thdGhvbnxlbnwwfHx8fDE3ODk0NzU1ODF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Group of students working at desks, used for 'About the Event' section."
+    },
+    "diversity_students": {
+      "url": "https://images.unsplash.com/photo-1719159381981-1327b22aff9b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwxfHxzdHVkZW50cyUyMGNvZGluZyUyMGhhY2thdGhvbnxlbnwwfHx8fDE3ODk0NzU1ODF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Students collaborating in a computer lab."
+    },
+    "code_visual": {
+      "url": "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwyfHxjb2RlJTIwcHJvZ3JhbW1pbmclMjBzY3JlZW58ZW58MHx8fHwxNzg5NDc1NTgyfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Computer screen showing code, decorative visual for CodeMasters round."
+    }
+  },
+  "universal_guidelines_for_main_agent": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur).",
+    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions for specific interactive elements excluding transforms.",
+    "You MUST NOT center align the app container (.App { text-align: center; }).",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like robot, brain, lightbulb, target, etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations separate good from extraordinary.",
+    "DO NOT use complete transparent background in header, overlays, any surface that has content under it.",
+    "Use lucide-react for standard icons.",
+    "For the code editor, implement a 3-pane layout. It should feel like a modern IDE (sidebar, editor, terminal)."
+  ],
+  "dependencies_to_install": [
+    "framer-motion",
+    "lucide-react",
+    "react-fast-marquee",
+    "@fontsource/unbounded",
+    "@fontsource/outfit",
+    "@fontsource/jetbrains-mono"
+  ]
+}
