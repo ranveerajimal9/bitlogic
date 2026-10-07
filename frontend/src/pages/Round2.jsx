@@ -83,7 +83,13 @@ export default function Round2() {
           <Puzzle className="w-7 h-7 text-secondary" />
           <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight">Round 2 — LogicQuest</h1>
         </div>
-        <p className="text-muted-foreground mb-8">Solve the word & number puzzles. Choose the best answer for each. You can re-submit until the round closes.</p>
+        <p className="text-muted-foreground mb-5">Solve the word & number puzzles. Choose the best answer for each. You can re-submit until the round closes.</p>
+
+        <div className="glass rounded-2xl p-5 mb-8 grid sm:grid-cols-3 gap-4 text-sm" data-testid="round2-briefing">
+          <div><p className="text-xs uppercase tracking-widest text-muted-foreground">Focus</p><p className="mt-1">Logical reasoning, mathematics & language logic</p></div>
+          <div><p className="text-xs uppercase tracking-widest text-muted-foreground">Time</p><p className="mt-1 text-secondary font-medium">60 minutes (recommended)</p></div>
+          <div><p className="text-xs uppercase tracking-widest text-muted-foreground">Selection</p><p className="mt-1">Top 5 qualify for Round 3</p></div>
+        </div>
 
         {puzzles.length === 0 && (
           <div className="glass rounded-2xl p-10 text-center text-muted-foreground" data-testid="no-puzzles">

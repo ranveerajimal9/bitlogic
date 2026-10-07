@@ -355,6 +355,14 @@ async def reset_competition(admin: dict = Depends(require_admin)):
     return {"message": "Competition reset"}
 
 # ---------------- Leaderboard ----------------
+@api_router.get("/stats")
+async def stats(admin: dict = Depends(require_admin)):
+    total = await db.users.count_documents({"role": "student"})
+    r2 = await db.users.count_documents({"role": "student", "qualified_round": {"$gte": 2}})
+    r3 = await db.users.count_documents({"role": "student", "qualified_round": {"$gte": 3}})
+    eliminated = await db.users.count_documents({"role": "student", "eliminated": True})
+    return {"total_participants": total, "qualified_round2": r2, "qualified_round3": r3, "eliminated": eliminated}
+
 @api_router.get("/leaderboard")
 async def leaderboard(admin: dict = Depends(require_admin)):
     students = await db.users.find({"role": "student"}).to_list(1000)
@@ -581,17 +589,30 @@ async def startup():
     await db.users.create_index("email", unique=True)
     await db.login_attempts.create_index("email")
     await get_config()
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com").lower()
-    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    existing = await db.users.find_one({"email": admin_email})
-    if existing is None:
-        await db.users.insert_one({
-            "email": admin_email, "password_hash": hash_password(admin_password),
-            "name": "BITLOGIC Admin", "role": "admin", "created_at": datetime.now(timezone.utc).isoformat(),
-        })
-        logger.info("Seeded admin %s", admin_email)
-    elif not verify_password(admin_password, existing["password_hash"]):
-        await db.users.update_one({"email": admin_email}, {"$set": {"password_hash": hash_password(admin_password), "role": "admin"}})
+    # Admins are restricted to exactly these two accounts, configured via env.
+    admins = [
+        (os.environ.get("ADMIN_EMAIL", "").lower(), os.environ.get("ADMIN_PASSWORD", ""), "Ranveer Ajimal"),
+        (os.environ.get("ADMIN2_EMAIL", "").lower(), os.environ.get("ADMIN2_PASSWORD", ""), "Aditya Y"),
+    ]
+    allowed = [a[0] for a in admins if a[0]]
+    for email, password, name in admins:
+        if not email or not password:
+            continue
+        existing = await db.users.find_one({"email": email})
+        if existing is None:
+            await db.users.insert_one({
+                "email": email, "password_hash": hash_password(password),
+                "name": name, "role": "admin", "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+            logger.info("Seeded admin %s", email)
+        else:
+            update = {"role": "admin"}
+            if not verify_password(password, existing["password_hash"]):
+                update["password_hash"] = hash_password(password)
+            await db.users.update_one({"email": email}, {"$set": update})
+    # Demote any other account that somehow has admin role — only the two allowed emails may be admins.
+    if allowed:
+        await db.users.update_many({"role": "admin", "email": {"$nin": allowed}}, {"$set": {"role": "student"}})
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

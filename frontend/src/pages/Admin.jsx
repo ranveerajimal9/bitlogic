@@ -179,6 +179,20 @@ function StudentsTab({ comp, students, reload }) {
 
   return (
     <div className="mt-6 space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" data-testid="participant-stats">
+        {[
+          { label: "Participants Signed Up", value: students.length, cls: "text-primary", tid: "stat-total" },
+          { label: "Qualified · Round 2", value: students.filter((s) => s.qualified_round >= 2 && !s.eliminated).length, cls: "text-secondary", tid: "stat-r2" },
+          { label: "Qualified · Round 3", value: students.filter((s) => s.qualified_round >= 3 && !s.eliminated).length, cls: "text-accent", tid: "stat-r3" },
+          { label: "Eliminated", value: students.filter((s) => s.eliminated).length, cls: "text-muted-foreground", tid: "stat-elim" },
+        ].map((s) => (
+          <div key={s.label} className="glass rounded-2xl p-5" data-testid={s.tid}>
+            <p className="text-xs uppercase tracking-[0.15em] text-muted-foreground">{s.label}</p>
+            <p className={`font-mono font-bold text-3xl mt-2 ${s.cls}`}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
       <div className="glass rounded-2xl p-6">
         <h3 className="font-display font-bold text-xl mb-4 flex items-center gap-2"><Plus className="w-5 h-5 text-primary" /> Add Student</h3>
         <div className="grid sm:grid-cols-4 gap-3">
